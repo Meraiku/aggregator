@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
+	"github.com/meraiku/aggregator/internal/cli"
 	"github.com/meraiku/aggregator/internal/config"
 )
 
@@ -13,18 +14,23 @@ func main() {
 		log.Fatalf("error reading config: %s", err)
 	}
 
-	fmt.Println(cfg)
+	state := cli.NewState(cfg)
 
-	err = cfg.SetUser("Meraiku")
+	cmds := cli.NewCommands()
+
+	err = cmds.Register("login", cli.Login)
 	if err != nil {
-		log.Fatalf("setting user in config: %s", err)
+		log.Fatalf("error register login handler: %s", err)
 	}
 
-	cfg, err = config.Read()
-	if err != nil {
-		log.Fatalf("error reading config: %s", err)
+	args := os.Args
+	if len(args) < 2 {
+		log.Fatal(cli.ErrInvalidArgumentsCount)
 	}
 
-	fmt.Println(cfg)
+	cmd := cli.NewCommand(args[1], args[2:])
 
+	if err := cmds.Run(state, *cmd); err != nil {
+		log.Fatal(err)
+	}
 }
