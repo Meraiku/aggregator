@@ -14,7 +14,10 @@ func main() {
 		log.Fatalf("error reading config: %s", err)
 	}
 
-	state := cli.NewState(cfg)
+	state, err := cli.NewState(cfg)
+	if err != nil {
+		log.Fatalf("error creating new state: %s", err)
+	}
 
 	cmds := cli.NewCommands()
 
