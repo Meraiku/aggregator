@@ -1,0 +1,11 @@
+
+services:
+
+  db:
+    container_name: posrgres
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    env_file:
+      - path: .env
