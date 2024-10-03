@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/meraiku/aggregator/internal/repository/sql"
+	"github.com/meraiku/aggregator/internal/rss"
 )
 
 func Login(state *State, cmd Command) error {
@@ -93,6 +94,20 @@ func Users(state *State, cmd Command) error {
 		}
 		fmt.Printf("* %s\n", user)
 	}
+
+	return nil
+}
+
+func Agg(state *State, cmd Command) error {
+
+	ctx := context.Background()
+
+	feed, err := rss.FetchRSS(ctx, "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(feed)
 
 	return nil
 }

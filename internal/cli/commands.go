@@ -40,6 +40,42 @@ func (c *Commands) Register(name string, f CLIFunc) error {
 	return nil
 }
 
+func (c *Commands) RegisterHandlers() error {
+	funcs := []struct {
+		name string
+		f    CLIFunc
+	}{
+		{
+			name: "login",
+			f:    Login,
+		},
+		{
+			name: "register",
+			f:    Register,
+		},
+		{
+			name: "reset",
+			f:    Reset,
+		},
+		{
+			name: "users",
+			f:    Users,
+		},
+		{
+			name: "agg",
+			f:    Agg,
+		},
+	}
+
+	for _, f := range funcs {
+		if err := c.Register(f.name, f.f); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Commands) Run(state *State, cmd Command) error {
 	if state == nil {
 		return ErrUnknownState

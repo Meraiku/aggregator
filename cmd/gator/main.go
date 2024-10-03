@@ -21,24 +21,9 @@ func main() {
 
 	cmds := cli.NewCommands()
 
-	err = cmds.Register("login", cli.Login)
+	err = cmds.RegisterHandlers()
 	if err != nil {
-		log.Fatalf("error register login handler: %s", err)
-	}
-
-	err = cmds.Register("register", cli.Register)
-	if err != nil {
-		log.Fatalf("error register register handler: %s", err)
-	}
-
-	err = cmds.Register("reset", cli.Reset)
-	if err != nil {
-		log.Fatalf("error register reset handler: %s", err)
-	}
-
-	err = cmds.Register("users", cli.Users)
-	if err != nil {
-		log.Fatalf("error register users handler: %s", err)
+		log.Fatalf("error register handlers: %s", err)
 	}
 
 	args := os.Args
