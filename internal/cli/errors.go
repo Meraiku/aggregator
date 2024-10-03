@@ -8,4 +8,6 @@ var (
 	ErrUnknownState            = errors.New("unknown state provided")
 	ErrUnknownCommand          = errors.New("unknown command provided")
 	ErrInvalidArgumentsCount   = errors.New("invalid arguments number")
+	ErrUserAlreadyExists       = errors.New("user already exists")
+	ErrUserNotExists           = errors.New("user not exists")
 )

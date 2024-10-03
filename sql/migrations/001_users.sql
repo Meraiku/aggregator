@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users(
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_name ON users USING hash (name);
 
 -- +goose Down
 DROP TABLE IF EXISTS users;
