@@ -111,3 +111,50 @@ func Agg(state *State, cmd Command) error {
 
 	return nil
 }
+
+func AddFeed(state *State, cmd Command) error {
+	if len(cmd.Args) < 2 {
+		return ErrInvalidArgumentsCount
+	}
+
+	ctx := context.Background()
+
+	user, err := state.db.GetUser(ctx, state.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+
+	params := sql.CreateFeedParams{
+		ID:        uuid.New(),
+		Name:      cmd.Args[0],
+		Url:       cmd.Args[1],
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	feed, err := state.db.CreateFeed(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(feed)
+
+	return nil
+}
+
+func Feeds(state *State, cmd Command) error {
+
+	ctx := context.Background()
+
+	data, err := state.db.GetAllFeeds(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i := range data {
+		fmt.Printf("%s\n%s\n%s\n", data[i].Name, data[i].Url, data[i].Name_2)
+	}
+
+	return nil
+}

@@ -65,6 +65,14 @@ func (c *Commands) RegisterHandlers() error {
 			name: "agg",
 			f:    Agg,
 		},
+		{
+			name: "addfeed",
+			f:    AddFeed,
+		},
+		{
+			name: "feeds",
+			f:    Feeds,
+		},
 	}
 
 	for _, f := range funcs {

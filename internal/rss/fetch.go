@@ -31,7 +31,7 @@ func FetchRSS(ctx context.Context, url string) (*RSSFeed, error) {
 
 	if resp.StatusCode >= 400 {
 		// TODO Error
-		fmt.Printf("Bad response status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("Bad response status code: %d", resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
