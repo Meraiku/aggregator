@@ -1,8 +1,12 @@
 package cli
 
-import "sync"
+import (
+	"sync"
 
-type CLIFunc func(*State, Command) error
+	"github.com/meraiku/aggregator/internal/app"
+)
+
+type CLIFunc func(*app.State, Command) error
 
 type Command struct {
 	Name string
@@ -85,6 +89,10 @@ func (c *Commands) RegisterHandlers() error {
 			name: "unfollow",
 			f:    MiddlewreLoggedIn(Unfollow),
 		},
+		{
+			name: "browse",
+			f:    MiddlewreLoggedIn(Browse),
+		},
 	}
 
 	for _, f := range funcs {
@@ -96,7 +104,7 @@ func (c *Commands) RegisterHandlers() error {
 	return nil
 }
 
-func (c *Commands) Run(state *State, cmd Command) error {
+func (c *Commands) Run(state *app.State, cmd Command) error {
 	if state == nil {
 		return ErrUnknownState
 	}

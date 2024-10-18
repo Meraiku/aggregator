@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/meraiku/aggregator/internal/app"
 	"github.com/meraiku/aggregator/internal/cli"
 	"github.com/meraiku/aggregator/internal/config"
 )
@@ -14,7 +15,7 @@ func main() {
 		log.Fatalf("error reading config: %s", err)
 	}
 
-	state, err := cli.NewState(cfg)
+	state, err := app.NewState(cfg)
 	if err != nil {
 		log.Fatalf("error creating new state: %s", err)
 	}

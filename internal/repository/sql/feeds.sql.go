@@ -7,6 +7,7 @@ package sql
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -104,4 +105,43 @@ func (q *Queries) GetFeedIDByURL(ctx context.Context, url string) (uuid.UUID, er
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getNextFeedToFetch = `-- name: GetNextFeedToFetch :one
+
+SELECT id, url
+FROM feeds
+ORDER BY last_fetched_at ASC NULLS FIRST
+LIMIT 1
+`
+
+type GetNextFeedToFetchRow struct {
+	ID  uuid.UUID
+	Url string
+}
+
+func (q *Queries) GetNextFeedToFetch(ctx context.Context) (GetNextFeedToFetchRow, error) {
+	row := q.db.QueryRowContext(ctx, getNextFeedToFetch)
+	var i GetNextFeedToFetchRow
+	err := row.Scan(&i.ID, &i.Url)
+	return i, err
+}
+
+const markFetched = `-- name: MarkFetched :exec
+
+UPDATE feeds
+SET last_fetched_at = $1,
+    updated_at = $2
+WHERE id = $3
+`
+
+type MarkFetchedParams struct {
+	LastFetchedAt sql.NullTime
+	UpdatedAt     time.Time
+	ID            uuid.UUID
+}
+
+func (q *Queries) MarkFetched(ctx context.Context, arg MarkFetchedParams) error {
+	_, err := q.db.ExecContext(ctx, markFetched, arg.LastFetchedAt, arg.UpdatedAt, arg.ID)
+	return err
 }

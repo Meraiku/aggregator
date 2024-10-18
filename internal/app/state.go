@@ -1,4 +1,4 @@
-package cli
+package app
 
 import (
 	"github.com/meraiku/aggregator/internal/config"
@@ -6,8 +6,8 @@ import (
 )
 
 type State struct {
-	cfg *config.Config
-	db  *sql.Queries
+	Cfg *config.Config
+	Db  *sql.Queries
 }
 
 func NewState(cfg *config.Config) (*State, error) {
@@ -18,7 +18,7 @@ func NewState(cfg *config.Config) (*State, error) {
 	}
 
 	return &State{
-		cfg: cfg,
-		db:  db,
+		Cfg: cfg,
+		Db:  db,
 	}, nil
 }

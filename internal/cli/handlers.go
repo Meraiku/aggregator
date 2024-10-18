@@ -3,21 +3,23 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/meraiku/aggregator/internal/app"
 	"github.com/meraiku/aggregator/internal/repository/sql"
 	"github.com/meraiku/aggregator/internal/rss"
 )
 
-func Login(state *State, cmd Command) error {
+func Login(state *app.State, cmd Command) error {
 	if len(cmd.Args) == 0 {
 		return ErrNoArgs
 	}
 	ctx := context.Background()
 
-	user, err := state.db.GetUser(ctx, cmd.Args[0])
+	user, err := state.Db.GetUser(ctx, cmd.Args[0])
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows") {
 			return ErrUserNotExists
@@ -25,17 +27,17 @@ func Login(state *State, cmd Command) error {
 		return err
 	}
 
-	err = state.cfg.SetUser(user.Name)
+	err = state.Cfg.SetUser(user.Name)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("User '%s' has been set!\n", state.cfg.CurrentUserName)
+	fmt.Printf("User '%s' has been set!\n", state.Cfg.CurrentUserName)
 
 	return nil
 }
 
-func Register(state *State, cmd Command) error {
+func Register(state *app.State, cmd Command) error {
 	if len(cmd.Args) == 0 {
 		return ErrNoArgs
 	}
@@ -49,7 +51,7 @@ func Register(state *State, cmd Command) error {
 		UpdatedAt: time.Now().UTC(),
 	}
 
-	userSQL, err := state.db.CreateUser(ctx, user)
+	userSQL, err := state.Db.CreateUser(ctx, user)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return ErrUserAlreadyExists
@@ -57,7 +59,7 @@ func Register(state *State, cmd Command) error {
 		return err
 	}
 
-	if err := state.cfg.SetUser(userSQL.Name); err != nil {
+	if err := state.Cfg.SetUser(userSQL.Name); err != nil {
 		return err
 	}
 
@@ -66,11 +68,11 @@ func Register(state *State, cmd Command) error {
 	return nil
 }
 
-func Reset(state *State, cmd Command) error {
+func Reset(state *app.State, cmd Command) error {
 
 	ctx := context.Background()
 
-	if err := state.db.ResetUsers(ctx); err != nil {
+	if err := state.Db.ResetUsers(ctx); err != nil {
 		return err
 	}
 
@@ -79,17 +81,17 @@ func Reset(state *State, cmd Command) error {
 	return nil
 }
 
-func Users(state *State, cmd Command) error {
+func Users(state *app.State, cmd Command) error {
 
 	ctx := context.Background()
 
-	users, err := state.db.GetUsers(ctx)
+	users, err := state.Db.GetUsers(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, user := range users {
-		if user == state.cfg.CurrentUserName {
+		if user == state.Cfg.CurrentUserName {
 			user = fmt.Sprintf("%s (current)", user)
 		}
 		fmt.Printf("* %s\n", user)
@@ -98,21 +100,33 @@ func Users(state *State, cmd Command) error {
 	return nil
 }
 
-func Agg(state *State, cmd Command) error {
+func Agg(state *app.State, cmd Command) error {
 
-	ctx := context.Background()
+	if len(cmd.Args) == 0 {
+		return ErrNoArgs
+	}
 
-	feed, err := rss.FetchRSS(ctx, "https://www.wagslane.dev/index.xml")
+	dur, err := time.ParseDuration(cmd.Args[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(feed)
+	if dur < time.Minute {
+		return fmt.Errorf("DDOS WARNING!!! Minimum duration is 1 minute. You entered %v\n", dur.String())
+	}
 
-	return nil
+	ticker := time.NewTicker(dur)
+	defer ticker.Stop()
+
+	fmt.Printf("Scrapping feeds every %v\n", dur.String())
+
+	for ; ; <-ticker.C {
+		rss.ScrapeFeeds(state)
+	}
+
 }
 
-func AddFeed(state *State, cmd Command, user sql.GetUserRow) error {
+func AddFeed(state *app.State, cmd Command, user sql.GetUserRow) error {
 	if len(cmd.Args) < 2 {
 		return ErrInvalidArgumentsCount
 	}
@@ -128,12 +142,12 @@ func AddFeed(state *State, cmd Command, user sql.GetUserRow) error {
 		UpdatedAt: time.Now(),
 	}
 
-	feed, err := state.db.CreateFeed(ctx, params)
+	feed, err := state.Db.CreateFeed(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	_, err = state.db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
+	_, err = state.Db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		FeedID:    feed.ID,
 		UserID:    user.ID,
@@ -149,11 +163,11 @@ func AddFeed(state *State, cmd Command, user sql.GetUserRow) error {
 	return nil
 }
 
-func Feeds(state *State, cmd Command) error {
+func Feeds(state *app.State, cmd Command) error {
 
 	ctx := context.Background()
 
-	data, err := state.db.GetAllFeeds(ctx)
+	data, err := state.Db.GetAllFeeds(ctx)
 	if err != nil {
 		return err
 	}
@@ -166,16 +180,20 @@ func Feeds(state *State, cmd Command) error {
 	return nil
 }
 
-func Follow(state *State, cmd Command, user sql.GetUserRow) error {
+func Follow(state *app.State, cmd Command, user sql.GetUserRow) error {
+
+	if len(cmd.Args) == 0 {
+		return ErrNoArgs
+	}
 
 	ctx := context.Background()
 
-	feedID, err := state.db.GetFeedIDByURL(ctx, cmd.Args[0])
+	feedID, err := state.Db.GetFeedIDByURL(ctx, cmd.Args[0])
 	if err != nil {
 		return err
 	}
 
-	data, err := state.db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
+	data, err := state.Db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		FeedID:    feedID,
 		UserID:    user.ID,
@@ -191,11 +209,11 @@ func Follow(state *State, cmd Command, user sql.GetUserRow) error {
 	return nil
 }
 
-func Following(state *State, cmd Command, user sql.GetUserRow) error {
+func Following(state *app.State, cmd Command, user sql.GetUserRow) error {
 
 	ctx := context.Background()
 
-	data, err := state.db.GetFeedFollowsForUser(ctx, user.ID)
+	data, err := state.Db.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {
 		return err
 	}
@@ -207,11 +225,15 @@ func Following(state *State, cmd Command, user sql.GetUserRow) error {
 	return nil
 }
 
-func Unfollow(state *State, cmd Command, user sql.GetUserRow) error {
+func Unfollow(state *app.State, cmd Command, user sql.GetUserRow) error {
+
+	if len(cmd.Args) == 0 {
+		return ErrNoArgs
+	}
 
 	ctx := context.Background()
 
-	if err := state.db.DeleteFeedFollow(ctx, sql.DeleteFeedFollowParams{
+	if err := state.Db.DeleteFeedFollow(ctx, sql.DeleteFeedFollowParams{
 		Url:    cmd.Args[0],
 		UserID: user.ID,
 	}); err != nil {
@@ -220,5 +242,33 @@ func Unfollow(state *State, cmd Command, user sql.GetUserRow) error {
 
 	fmt.Printf("Feed '%s' has been unfollowed!\n", cmd.Args[0])
 
+	return nil
+}
+
+func Browse(state *app.State, cmd Command, user sql.GetUserRow) error {
+
+	limit, err := strconv.Atoi(cmd.Args[0])
+	if err != nil {
+		limit = 2
+	}
+
+	if len(cmd.Args) == 0 {
+		limit = 2
+	}
+
+	ctx := context.Background()
+
+	posts, err := state.Db.GetPostsForUser(ctx, sql.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		fmt.Println("----------------")
+		fmt.Printf("Title: %s\n\nDescription: %s\nURL: %s\n--------------\n", post.Title, post.Description.String, post.Url)
+	}
 	return nil
 }
