@@ -67,11 +67,23 @@ func (c *Commands) RegisterHandlers() error {
 		},
 		{
 			name: "addfeed",
-			f:    AddFeed,
+			f:    MiddlewreLoggedIn(AddFeed),
 		},
 		{
 			name: "feeds",
 			f:    Feeds,
+		},
+		{
+			name: "follow",
+			f:    MiddlewreLoggedIn(Follow),
+		},
+		{
+			name: "following",
+			f:    MiddlewreLoggedIn(Following),
+		},
+		{
+			name: "unfollow",
+			f:    MiddlewreLoggedIn(Unfollow),
 		},
 	}
 

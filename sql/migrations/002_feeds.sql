@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS feeds(
 );
 
 CREATE INDEX IF NOT EXISTS idx_name ON feeds USING hash (name);
+CREATE INDEX IF NOT EXISTS idx_url ON feeds USING hash (url);
 
 -- +goose Down
 

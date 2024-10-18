@@ -74,7 +74,7 @@ func Reset(state *State, cmd Command) error {
 		return err
 	}
 
-	fmt.Printf("Users succsessfuly has been deleted!\n")
+	fmt.Printf("Users succsessfuly has been resetted!\n")
 
 	return nil
 }
@@ -112,17 +112,12 @@ func Agg(state *State, cmd Command) error {
 	return nil
 }
 
-func AddFeed(state *State, cmd Command) error {
+func AddFeed(state *State, cmd Command, user sql.User) error {
 	if len(cmd.Args) < 2 {
 		return ErrInvalidArgumentsCount
 	}
 
 	ctx := context.Background()
-
-	user, err := state.db.GetUser(ctx, state.cfg.CurrentUserName)
-	if err != nil {
-		return err
-	}
 
 	params := sql.CreateFeedParams{
 		ID:        uuid.New(),
@@ -138,7 +133,18 @@ func AddFeed(state *State, cmd Command) error {
 		return err
 	}
 
-	fmt.Println(feed)
+	_, err = state.db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		FeedID:    feed.ID,
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Feed '%s' has been created!\n", feed.Name)
 
 	return nil
 }
@@ -152,9 +158,67 @@ func Feeds(state *State, cmd Command) error {
 		return err
 	}
 
+	fmt.Println("----------------")
 	for i := range data {
-		fmt.Printf("%s\n%s\n%s\n", data[i].Name, data[i].Url, data[i].Name_2)
+		fmt.Printf("Feed: %s\nURL: %s\nCreated by: %s\n---------------\n", data[i].FeedName, data[i].Url, data[i].UserName)
 	}
+
+	return nil
+}
+
+func Follow(state *State, cmd Command, user sql.User) error {
+
+	ctx := context.Background()
+
+	feedID, err := state.db.GetFeedIDByURL(ctx, cmd.Args[0])
+	if err != nil {
+		return err
+	}
+
+	data, err := state.db.CreateFeedFollow(ctx, sql.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		FeedID:    feedID,
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Feed '%s' has been followed by '%s'!\n", data.FeedName, data.UserName)
+
+	return nil
+}
+
+func Following(state *State, cmd Command, user sql.User) error {
+
+	ctx := context.Background()
+
+	data, err := state.db.GetFeedFollowsForUser(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+
+	for i := range data {
+		fmt.Printf("Feed '%s' followed by '%s'\n", data[i].FeedName, data[i].UserName)
+	}
+
+	return nil
+}
+
+func Unfollow(state *State, cmd Command, user sql.User) error {
+
+	ctx := context.Background()
+
+	if err := state.db.DeleteFeedFollow(ctx, sql.DeleteFeedFollowParams{
+		Url:    cmd.Args[0],
+		UserID: user.ID,
+	}); err != nil {
+		return err
+	}
+
+	fmt.Printf("Feed '%s' has been unfollowed!\n", cmd.Args[0])
 
 	return nil
 }
