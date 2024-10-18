@@ -15,11 +15,13 @@ import (
 const createFeedFollow = `-- name: CreateFeedFollow :one
 
 WITH inserted_feed_follow AS (
-  INSERT INTO feed_follows (id, user_id, feed_id, created_at, updated_at)
+  INSERT INTO feed_follows 
+  (id, user_id, feed_id, created_at, updated_at)
   VALUES ($1, $2, $3, $4, $5)
   RETURNING id, user_id, feed_id, created_at, updated_at
 )
-SELECT inserted_feed_follow.id, inserted_feed_follow.user_id, inserted_feed_follow.feed_id, inserted_feed_follow.created_at, inserted_feed_follow.updated_at, feeds.name AS feed_name, users.name AS user_name
+SELECT  feeds.name AS feed_name, 
+        users.name AS user_name
 FROM inserted_feed_follow
 INNER JOIN feeds ON inserted_feed_follow.feed_id=feeds.id
 INNER JOIN users ON inserted_feed_follow.user_id=users.id
@@ -34,13 +36,8 @@ type CreateFeedFollowParams struct {
 }
 
 type CreateFeedFollowRow struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	FeedID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	FeedName  string
-	UserName  string
+	FeedName string
+	UserName string
 }
 
 func (q *Queries) CreateFeedFollow(ctx context.Context, arg CreateFeedFollowParams) (CreateFeedFollowRow, error) {
@@ -52,22 +49,16 @@ func (q *Queries) CreateFeedFollow(ctx context.Context, arg CreateFeedFollowPara
 		arg.UpdatedAt,
 	)
 	var i CreateFeedFollowRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.FeedID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.FeedName,
-		&i.UserName,
-	)
+	err := row.Scan(&i.FeedName, &i.UserName)
 	return i, err
 }
 
 const deleteFeedFollow = `-- name: DeleteFeedFollow :exec
 
 DELETE FROM feed_follows
-WHERE feed_id = (SELECT id FROM feeds WHERE feeds.url = $1)
+WHERE feed_id = (
+  SELECT id FROM feeds 
+  WHERE feeds.url = $1)
 AND feed_follows.user_id = $2
 `
 
@@ -83,7 +74,8 @@ func (q *Queries) DeleteFeedFollow(ctx context.Context, arg DeleteFeedFollowPara
 
 const getFeedFollowsForUser = `-- name: GetFeedFollowsForUser :many
 
-SELECT feeds.name AS feed_name, users.name AS user_name
+SELECT  feeds.name AS feed_name,
+        users.name AS user_name
 FROM feed_follows 
 INNER JOIN feeds ON feed_follows.feed_id = feeds.id
 INNER JOIN users ON feed_follows.user_id = users.id

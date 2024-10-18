@@ -112,7 +112,7 @@ func Agg(state *State, cmd Command) error {
 	return nil
 }
 
-func AddFeed(state *State, cmd Command, user sql.User) error {
+func AddFeed(state *State, cmd Command, user sql.GetUserRow) error {
 	if len(cmd.Args) < 2 {
 		return ErrInvalidArgumentsCount
 	}
@@ -166,7 +166,7 @@ func Feeds(state *State, cmd Command) error {
 	return nil
 }
 
-func Follow(state *State, cmd Command, user sql.User) error {
+func Follow(state *State, cmd Command, user sql.GetUserRow) error {
 
 	ctx := context.Background()
 
@@ -191,7 +191,7 @@ func Follow(state *State, cmd Command, user sql.User) error {
 	return nil
 }
 
-func Following(state *State, cmd Command, user sql.User) error {
+func Following(state *State, cmd Command, user sql.GetUserRow) error {
 
 	ctx := context.Background()
 
@@ -207,7 +207,7 @@ func Following(state *State, cmd Command, user sql.User) error {
 	return nil
 }
 
-func Unfollow(state *State, cmd Command, user sql.User) error {
+func Unfollow(state *State, cmd Command, user sql.GetUserRow) error {
 
 	ctx := context.Background()
 

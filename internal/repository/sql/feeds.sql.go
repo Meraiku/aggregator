@@ -15,8 +15,8 @@ import (
 const createFeed = `-- name: CreateFeed :one
 
 INSERT INTO feeds (id, name, url, user_id, created_at, updated_at) 
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, url, user_id, created_at, updated_at
+    VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, url, user_id
 `
 
 type CreateFeedParams struct {
@@ -28,7 +28,14 @@ type CreateFeedParams struct {
 	UpdatedAt time.Time
 }
 
-func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
+type CreateFeedRow struct {
+	ID     uuid.UUID
+	Name   string
+	Url    string
+	UserID uuid.UUID
+}
+
+func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (CreateFeedRow, error) {
 	row := q.db.QueryRowContext(ctx, createFeed,
 		arg.ID,
 		arg.Name,
@@ -37,23 +44,23 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	var i Feed
+	var i CreateFeedRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Url,
 		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getAllFeeds = `-- name: GetAllFeeds :many
 
-SELECT feeds.name AS feed_name, feeds.url, users.name AS user_name
+SELECT  feeds.name AS feed_name, 
+        feeds.url, 
+        users.name AS user_name
 FROM feeds
-JOIN users
+INNER JOIN users
 ON feeds.user_id=users.id
 `
 

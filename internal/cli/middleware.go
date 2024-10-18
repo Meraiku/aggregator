@@ -6,7 +6,7 @@ import (
 	"github.com/meraiku/aggregator/internal/repository/sql"
 )
 
-type LoggedFunc func(state *State, cmd Command, user sql.User) error
+type LoggedFunc func(state *State, cmd Command, user sql.GetUserRow) error
 
 func MiddlewreLoggedIn(handler LoggedFunc) CLIFunc {
 	return func(s *State, c Command) error {
